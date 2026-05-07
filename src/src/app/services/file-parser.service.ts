@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import * as jschardet from 'jschardet';
 
 @Injectable({
   providedIn: 'root'
@@ -11,16 +12,52 @@ export class FileParserService {
 
   parseCSV(file: File): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          resolve(results.data);
-        },
-        error: (error) => {
-          reject(error);
+      // 1. Read a small chunk to detect encoding
+      const readerForDetect = new FileReader();
+      const chunk = file.slice(0, Math.min(1024 * 50, file.size)); // read up to 50KB to detect
+
+      readerForDetect.onload = (e: any) => {
+        const buffer = new Uint8Array(e.target.result);
+
+        // Convert to binary string for jschardet
+        let binaryString = '';
+        for (let i = 0; i < buffer.length; i++) {
+          binaryString += String.fromCharCode(buffer[i]);
         }
-      });
+
+        const detection = jschardet.detect(binaryString);
+        let encoding = 'utf-8'; // default
+        if (detection && detection.encoding) {
+          encoding = detection.encoding.toLowerCase();
+          // Map some common aliases to standard DOM string encodings
+          if (encoding === 'big5' || encoding.includes('big5')) {
+            encoding = 'big5';
+          } else if (encoding === 'ascii') {
+            encoding = 'utf-8';
+          }
+        }
+
+        // 2. Read the whole file with detected encoding
+        const readerForParse = new FileReader();
+        readerForParse.onload = (evt: any) => {
+            const text = evt.target.result;
+            Papa.parse(text, {
+              header: true,
+              skipEmptyLines: true,
+              complete: (results) => {
+                resolve(results.data);
+              },
+              error: (error: any) => {
+                reject(error);
+              }
+            });
+        };
+        readerForParse.onerror = (err) => reject(err);
+        readerForParse.readAsText(file, encoding);
+      };
+
+      readerForDetect.onerror = (err) => reject(err);
+      readerForDetect.readAsArrayBuffer(chunk);
     });
   }
 

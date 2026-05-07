@@ -4,6 +4,7 @@ import { UploadComponent } from './components/upload/upload.component';
 import { MappingComponent } from './components/mapping/mapping.component';
 import { AnomaliesComponent } from './components/anomalies/anomalies.component';
 import { BalancesComponent } from './components/balances/balances.component';
+import { ScannerComponent } from './components/scanner/scanner.component';
 
 import { FileParserService } from './services/file-parser.service';
 import { MappingService, FieldMapping } from './services/mapping.service';
@@ -22,14 +23,15 @@ import { AccountBalance } from './models/account-balance';
     UploadComponent,
     MappingComponent,
     AnomaliesComponent,
-    BalancesComponent
+    BalancesComponent,
+    ScannerComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
   step: number = 1;
-  activeTab: 'anomalies' | 'balances' = 'anomalies';
+  activeTab: 'anomalies' | 'balances' | 'scanner' = 'anomalies';
 
   rawRecords: any[] = [];
   fileHeaders: string[] = [];
