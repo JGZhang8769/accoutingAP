@@ -1,0 +1,21 @@
+<div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6 max-w-4xl mx-auto mt-8">
+  <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">請對應檔案欄位</h2>
+  <p class="text-sm text-gray-500 mb-6">我們已讀取您的檔案表頭，請將下列「系統所需欄位」對應至您的「檔案欄位」。</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div *ngFor="let field of requiredFields" class="flex flex-col">
+      <label class="text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+      <select
+        [(ngModel)]="mapping[field.key]"
+        class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-primary focus:border-primary block w-full p-2.5 transition-colors">
+        <option value="">-- 請選擇檔案欄位 --</option>
+        <option *ngFor="let header of fileHeaders" [value]="header">{{ header }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="mt-8 flex justify-end gap-3">
+    <button (click)="cancel.emit()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors font-medium">取消</button>
+    <button (click)="confirmMapping()" class="px-6 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm font-medium">開始分析</button>
+  </div>
+</div>
