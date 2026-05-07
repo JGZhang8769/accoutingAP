@@ -1,0 +1,51 @@
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row gap-8">
+  <!-- Left Side: Pairing -->
+  <div class="flex-1 border-r border-gray-100 pr-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-2">發票快掃核對精靈</h2>
+    <p class="text-gray-500 text-sm mb-6">請確認您的手機與電腦連線至同一個 Wi-Fi 網路，然後使用手機掃描下方 QR Code 開啟掃描器。</p>
+
+    <div class="flex flex-col items-center justify-center bg-gray-50 p-6 rounded-xl border border-gray-200">
+      <img *ngIf="qrCodeUrl" [src]="qrCodeUrl" alt="QR Code" class="w-48 h-48 bg-white p-2 rounded shadow-sm mb-4">
+      <p class="font-mono text-sm text-gray-600 bg-white px-3 py-1 border border-gray-200 rounded">{{ scannerUrl || '載入中...' }}</p>
+    </div>
+  </div>
+
+  <!-- Right Side: Real-time status -->
+  <div class="flex-1">
+    <h3 class="text-lg font-bold text-gray-800 mb-4">即時核對動態</h3>
+
+    <!-- Empty state -->
+    <div *ngIf="matchedScans.length === 0" class="flex flex-col items-center justify-center h-48 text-gray-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      等待手機掃描傳送...
+    </div>
+
+    <!-- Scan Feed -->
+    <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+      <div *ngFor="let scan of matchedScans" class="p-4 rounded-xl border animate-fade-in"
+           [ngClass]="scan.success ? 'bg-success/5 border-success/20' : 'bg-danger/5 border-danger/20'">
+
+        <div class="flex justify-between items-start mb-2">
+          <span class="font-bold" [ngClass]="scan.success ? 'text-success' : 'text-danger'">
+            {{ scan.success ? '✅ 核對成功' : '⚠️ 異常/找不到' }}
+          </span>
+          <span class="text-sm font-mono text-gray-500">{{ scan.amount | number:'1.0-2' }} 元</span>
+        </div>
+
+        <div *ngIf="scan.success" class="text-gray-700 text-sm">
+          對應帳款：{{ scan.voucher.vendor }} (第 {{ scan.position }} 筆)
+          <div class="mt-2 inline-block bg-primary/10 text-primary px-3 py-1 rounded-lg font-bold">
+            👉 第 {{ scan.row }} 列 / 第 {{ scan.col }} 張
+          </div>
+        </div>
+
+        <div *ngIf="!scan.success" class="text-gray-700 text-sm font-bold text-danger">
+          {{ scan.message || '請放置於【異常區】' }}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

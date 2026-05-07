@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>發票快掃精靈</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; text-align: center; }
+        .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 400px; margin: 0 auto; }
+        h1 { font-size: 20px; color: #1e3a8a; margin-bottom: 20px; }
+        .btn { display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; width: 100%; box-sizing: border-box; border: none; font-size: 16px; cursor: pointer; margin-bottom: 15px;}
+        .btn:active { background-color: #2563eb; }
+        .btn-outline { background-color: white; color: #3b82f6; border: 2px solid #3b82f6; }
+        input[type="file"] { display: none; }
+        #result-box { margin-top: 20px; padding: 15px; border-radius: 12px; display: none; }
+        .success { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981;}
+        .error { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444;}
+        .grid-pos { font-size: 24px; font-weight: 900; margin-top: 10px; color: #1e3a8a;}
+        #loader { display: none; margin-top: 20px; font-weight: bold; color: #6b7280;}
+        #manual-input-section { display: none; margin-top: 20px; }
+        #manual-amount { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #d1d5db; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; text-align: center;}
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>發票快掃精靈</h1>
+    <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">請確保發票平整、光線充足</p>
+
+    <label class="btn" id="upload-label">
+        📸 拍照掃描
+        <input type="file" accept="image/*" capture="environment" id="camera-input">
+    </label>
+
+    <button class="btn btn-outline" id="btn-show-manual">✍️ 手動輸入金額</button>
+
+    <div id="loader">🔄 正在辨識中，請稍候...</div>
+
+    <div id="manual-input-section">
+        <input type="number" id="manual-amount" placeholder="請輸入金額 (如 1050)">
+        <button class="btn" id="btn-submit-manual">送出比對</button>
+    </div>
+
+    <div id="result-box">
+        <div id="result-text" style="font-weight: bold;"></div>
+        <div id="result-grid" class="grid-pos"></div>
+    </div>
+</div>
+
+<script>
+    const cameraInput = document.getElementById('camera-input');
+    const loader = document.getElementById('loader');
+    const resultBox = document.getElementById('result-box');
+    const resultText = document.getElementById('result-text');
+    const resultGrid = document.getElementById('result-grid');
+
+    const manualSection = document.getElementById('manual-input-section');
+    const btnShowManual = document.getElementById('btn-show-manual');
+    const btnSubmitManual = document.getElementById('btn-submit-manual');
+    const manualAmountInput = document.getElementById('manual-amount');
+
+    btnShowManual.addEventListener('click', () => {
+        manualSection.style.display = 'block';
+        resultBox.style.display = 'none';
+        cameraInput.value = ''; // reset file
+    });
+
+    cameraInput.addEventListener('change', async (e) => {
+        if (!e.target.files.length) return;
+        manualSection.style.display = 'none';
+        await sendRequest(e.target.files[0], null);
+    });
+
+    btnSubmitManual.addEventListener('click', async () => {
+        const amt = manualAmountInput.value;
+        if (!amt) return alert('請輸入金額');
+        await sendRequest(null, amt);
+    });
+
+    async function sendRequest(file, manualAmt) {
+        loader.style.display = 'block';
+        resultBox.style.display = 'none';
+        resultBox.className = '';
+
+        const formData = new FormData();
+        if (file) {
+            formData.append('image', file);
+        }
+        if (manualAmt) {
+            formData.append('manualAmount', manualAmt);
+        }
+
+        try {
+            const res = await fetch('/api/scan', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            loader.style.display = 'none';
+            resultBox.style.display = 'block';
+            manualAmountInput.value = '';
+
+            if (data.needsManual) {
+                resultBox.classList.add('error');
+                resultText.innerHTML = `⚠️ ${data.message}`;
+                resultGrid.innerHTML = '';
+                manualSection.style.display = 'block';
+            } else if (data.success) {
+                resultBox.classList.add('success');
+                resultText.innerHTML = `✅ ${data.isManual ? '手動輸入' : '辨識成功'}：${data.amount} 元<br>比對為 ERP 第 ${data.position} 筆`;
+                resultGrid.innerHTML = `請放置於：第 ${data.row} 列 / 第 ${data.col} 張`;
+                manualSection.style.display = 'none';
+            } else {
+                resultBox.classList.add('error');
+                resultText.innerHTML = data.message + `<br>金額：${data.amount} 元`;
+                resultGrid.innerHTML = '請放置於：【異常區】';
+                manualSection.style.display = 'none';
+            }
+        } catch (err) {
+            loader.style.display = 'none';
+            alert('連線失敗，請確認電腦端系統已啟動。');
+        }
+    }
+</script>
+</body>
+</html>
