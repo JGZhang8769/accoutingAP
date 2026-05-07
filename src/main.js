@@ -30,27 +30,34 @@ function startExpressServer() {
     try {
       let amountStr = req.body.manualAmount;
       let isManual = false;
+      let extractedTaxId = null;
 
       // If manual amount is not provided, perform OCR
       if (!amountStr && req.file) {
         console.log('Starting OCR process...');
-        // For offline usage, you would bundle language data, but here Tesseract.js fetches it
-        // to cache locally the first time. In a production completely offline build,
-        // you would configure Tesseract to use a local langPath.
         const result = await Tesseract.recognize(req.file.buffer, 'eng+chi_tra', {
            logger: m => console.log(m)
         });
         const text = result.data.text;
         console.log('OCR Text:', text);
 
-        // Regex to find total amount. Very naive approach:
-        // Looks for words like 總計, 合計, Total followed by numbers
-        const match = text.match(/(?:總計|合計|Total|金額|Amount)[\s:：$]*([\d,]+(?:\.\d+)?)/i);
+        // 1. Try to extract an 8-digit Tax ID (統編)
+        // Looks for "統編", "統一編號" followed by 8 digits, or just any standalone 8 digits.
+        const taxIdMatch = text.match(/(?:統編|統一編號|NO\.?)[\s:：]*(\d{8})/i) || text.match(/\b(\d{8})\b/);
+        if (taxIdMatch) {
+            extractedTaxId = taxIdMatch[1];
+            console.log('Extracted Tax ID:', extractedTaxId);
+        }
+
+        // 2. Regex to find total amount.
+        const match = text.match(/(?:總計|合計|Total|金額|Amount|實收|應收|應付|NT\$?)[\s:：$]*([\d,]+(?:\.\d+)?)/i);
         if (match) {
           amountStr = match[1];
         } else {
-          // fallback: find the largest number on the receipt?
-          const numbers = [...text.matchAll(/[\d,]+(?:\.\d+)?/g)].map(m => parseFloat(m[0].replace(/,/g, ''))).filter(n => !isNaN(n));
+          const numbers = [...text.matchAll(/[\d,]+(?:\.\d+)?/g)]
+             .map(m => parseFloat(m[0].replace(/,/g, '')))
+             .filter(n => !isNaN(n) && n < 10000000);
+
           if (numbers.length > 0) {
               amountStr = Math.max(...numbers).toString();
           }
@@ -68,20 +75,44 @@ function startExpressServer() {
         return res.json({ success: false, needsManual: true, message: '解析的金額無效，請手動輸入' });
       }
 
-      // 3. Match against expected vouchers
-      let matchedIndex = -1;
+      // 3. Multi-dimensional Match against expected vouchers
+      let potentialMatches = [];
       for (let i = 0; i < expectedVouchers.length; i++) {
-        if (matchedIndices.has(i)) continue; // skip already matched
+        if (matchedIndices.has(i)) continue;
 
         const v = expectedVouchers[i];
-        const netAmount = Math.abs(v.credit - v.debit); // simple assumption
+        const netAmount = Math.abs(v.credit - v.debit);
+
         if (Math.abs(netAmount - parsedAmount) < 0.01) {
-           matchedIndex = i;
-           break;
+            let score = 1; // base score for amount match
+
+            // If we extracted a Tax ID from receipt, check if it exists in the vendor name or vendor code
+            // (Often ERPs put Tax ID in vendor string, e.g. "A公司(53567222)")
+            if (extractedTaxId && v.vendor && v.vendor.includes(extractedTaxId)) {
+                score += 10;
+            }
+
+            potentialMatches.push({ index: i, score: score, voucher: v });
         }
       }
 
-      if (matchedIndex !== -1) {
+      // Sort by score descending
+      potentialMatches.sort((a, b) => b.score - a.score);
+
+      if (potentialMatches.length > 0) {
+        // If there are multiple matches with the EXACT same score, we have a collision.
+        if (potentialMatches.length > 1 && potentialMatches[0].score === potentialMatches[1].score) {
+             return res.json({
+                success: false,
+                amount: parsedAmount,
+                message: `⚠️ 發現 ${potentialMatches.length} 筆相同金額 (${parsedAmount}) 的待核銷帳款！因為缺乏統編特徵，請手動從系統中確認是哪一家廠商。`,
+                needsManual: false,
+                isManual: isManual
+              });
+        }
+
+        const matchedIndex = potentialMatches[0].index;
+        matchedIndices.add(matchedIndex);
         matchedIndices.add(matchedIndex);
         const position = matchedIndex + 1; // 1-based
         const row = Math.ceil(position / 10);
