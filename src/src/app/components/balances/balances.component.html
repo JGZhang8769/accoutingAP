@@ -1,0 +1,54 @@
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <div>
+      <h2 class="text-lg font-bold text-gray-800">科目餘額表</h2>
+      <p class="text-sm text-gray-500">依據憑證資料自動彙整</p>
+    </div>
+    <div class="flex gap-3">
+        <button (click)="exportCSV()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm text-sm font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            匯出 CSV
+        </button>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-600">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+        <tr>
+          <th scope="col" class="px-6 py-4 font-semibold">科目代碼</th>
+          <th scope="col" class="px-6 py-4 font-semibold">科目名稱</th>
+          <th scope="col" class="px-6 py-4 font-semibold">供應商</th>
+          <th scope="col" class="px-6 py-4 font-semibold text-center">幣別</th>
+          <th scope="col" class="px-6 py-4 font-semibold text-right">原幣餘額</th>
+          <th scope="col" class="px-6 py-4 font-semibold text-right">本位幣(總額)餘額</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let balance of balances" class="border-b hover:bg-gray-50/50 transition-colors">
+          <td class="px-6 py-4 font-mono font-medium text-gray-800">{{ balance.accountCode }}</td>
+          <td class="px-6 py-4">{{ balance.accountName }}</td>
+          <td class="px-6 py-4">{{ balance.vendor || '-' }}</td>
+          <td class="px-6 py-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800">
+                {{ balance.currency }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right font-mono" [ngClass]="{'text-danger': balance.balance < 0}">
+            {{ balance.balance | number:'1.2-2' }}
+          </td>
+          <td class="px-6 py-4 text-right font-mono font-bold" [ngClass]="{'text-danger': balance.baseCurrencyBalance < 0}">
+            {{ balance.baseCurrencyBalance | number:'1.2-2' }}
+          </td>
+        </tr>
+        <tr *ngIf="balances.length === 0">
+           <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+               尚無餘額資料
+           </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

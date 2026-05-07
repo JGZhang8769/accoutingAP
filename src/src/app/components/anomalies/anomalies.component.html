@@ -1,0 +1,57 @@
+<div class="space-y-6">
+  <!-- Status Header -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        系統稽核發現 {{ anomalies.length }} 筆異常！
+      </h2>
+      <p class="text-gray-500 text-sm mt-1">請參考下方清單，回到原始檔案修正後重新匯入，或確認無誤後忽略。</p>
+    </div>
+    <div class="text-4xl font-black text-danger/20">
+      {{ anomalies.length }}
+    </div>
+  </div>
+
+  <!-- Anomalies List -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-sm text-left text-gray-600">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+        <tr>
+          <th scope="col" class="px-6 py-4 font-semibold">異常類型</th>
+          <th scope="col" class="px-6 py-4 font-semibold">發生位置/對象</th>
+          <th scope="col" class="px-6 py-4 font-semibold">詳細說明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let anomaly of anomalies" class="border-b hover:bg-gray-50/50 transition-colors">
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+              {{ getAnomalyTypeName(anomaly.type) }}
+            </span>
+          </td>
+          <td class="px-6 py-4 font-mono text-gray-500">
+            <span *ngIf="anomaly.voucherNo">憑證: {{ anomaly.voucherNo }}</span>
+            <span *ngIf="anomaly.rowNumber">第 {{ anomaly.rowNumber }} 列</span>
+            <span *ngIf="!anomaly.voucherNo && !anomaly.rowNumber">-</span>
+          </td>
+          <td class="px-6 py-4 font-medium text-gray-800">
+            {{ anomaly.message }}
+          </td>
+        </tr>
+        <tr *ngIf="anomalies.length === 0">
+           <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+             <div class="flex flex-col items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                太棒了！沒有發現任何異常。
+             </div>
+           </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<div class="min-h-screen bg-gray-50 text-gray-800 font-sans p-6">
+  <!-- Header -->
+  <header class="mb-8">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">應付科目餘額小幫手</h1>
+      </div>
+      <button *ngIf="step > 1" (click)="reset()" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+        重新開始
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto">
+    <!-- Step 1: Upload -->
+    <app-upload *ngIf="step === 1" (fileLoaded)="onFileLoaded($event)"></app-upload>
+
+    <!-- Step 2: Mapping -->
+    <app-mapping *ngIf="step === 2"
+      [fileHeaders]="fileHeaders"
+      (mappingConfirmed)="onMappingConfirmed($event)"
+      (cancel)="reset()">
+    </app-mapping>
+
+    <!-- Step 3: Dashboard / Results -->
+    <div *ngIf="step === 3" class="space-y-8 animate-fade-in">
+
+      <!-- Tabs -->
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8">
+          <button (click)="activeTab = 'anomalies'"
+            [ngClass]="activeTab === 'anomalies' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
+            異常稽核報告
+            <span *ngIf="anomalies.length > 0" class="bg-danger text-white py-0.5 px-2 rounded-full text-xs">{{ anomalies.length }}</span>
+          </button>
+
+          <button (click)="activeTab = 'balances'"
+            [ngClass]="activeTab === 'balances' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+            科目餘額表
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="mt-6">
+        <app-anomalies *ngIf="activeTab === 'anomalies'" [anomalies]="anomalies"></app-anomalies>
+        <app-balances *ngIf="activeTab === 'balances'" [balances]="balances"></app-balances>
+      </div>
+
+    </div>
+  </main>
+</div>
